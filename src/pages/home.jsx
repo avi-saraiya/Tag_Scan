@@ -17,7 +17,7 @@ function Home(){
                 width={450} alt = "Clothes.png"
             />
             <h1 className="title">Tag Scanner</h1>
-            <div>
+            <div className = "container">
                 <FileUpload/>
                 <br/>
                 <TextBlock></TextBlock>

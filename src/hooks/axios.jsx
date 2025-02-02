@@ -6,7 +6,7 @@ function DataFetcher(){
     useEffect(() => {
         async function fetchString(){
             try{
-                const response = await axios.get('http://localhost:5000/process-image');
+                const response = await axios.get('http://localhost:5000/process');
                 setMessage(response.data.message);
             } catch (error) {
                 console.error("Error fetching string: ", error);

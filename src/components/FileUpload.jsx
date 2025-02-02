@@ -1,28 +1,30 @@
-import React, { createContext, useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { Button, Progress } from "antd";
-import useSubmitButton from "../hooks/useSubmitButton";
+import useSubmitButton from "../hooks/useSubmitButton"; // Hook to enable Submit button
 
 function FileUpload() {
-    const [files, setFile] = useState([]);  
+    const [files, setFiles] = useState([]);  
     const [progress, setProgress] = useState({ started: false, pc: 0 });
     const [msg, setMsg] = useState(null);
-    const { submitButton, setActive } = useSubmitButton();
+    const { submitButton, setActive } = useSubmitButton(); // Button state hook
 
-    function handleFileSelection(files) {
-        const jpegFiles = Array.from(files).filter(file => file.type === "image/jpeg");
+    function handleFileSelection(event) {
+        const selectedFiles = event.target.files;
+        const jpegFiles = Array.from(selectedFiles).filter(file => file.type === "image/jpeg");
 
         if (jpegFiles.length === 0) {
-            alert("Please upload at least one jpeg file.");
+            alert("Please upload at least one JPEG file.");
             return;
         }
 
-        setFile(jpegFiles); // ✅ Store only jpeg files in state
+        setFiles(jpegFiles); // ✅ Store JPEG files in state
+        setActive(false); // ✅ Disable submit button until upload completes
     }
 
-    function handleUpload() {
+    async function handleUpload() {
         if (files.length === 0) {
-            setMsg("No jpeg files selected.");
+            setMsg("No JPEG files selected.");
             return;
         }
 
@@ -34,37 +36,37 @@ function FileUpload() {
         setMsg("Uploading...");
         setProgress({ started: true, pc: 0 });
 
-        axios.post("http://httpbin.org/post", fd, {
-            onUploadProgress: (progressEvent) => {
-                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                setProgress(prevState => ({ ...prevState, pc: percentCompleted }));
-            },
-            headers: {
-                "Content-Type": "multipart/form-data",
-            }
-        })
-        .then((res) => {
-            console.log(res.data)
+        try {
+            const response = await axios.post("http://localhost:5000/process", fd, {
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setProgress(prevState => ({ ...prevState, pc: percentCompleted }));
+                },
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                }
+            });
+
+            console.log("Upload response:", response.data);
             setMsg("Uploaded Successfully");
-            setActive(true);
-        })
-        .catch(() => {
+            setActive(true); // ✅ Enable the submit button after successful upload
+        } catch (error) {
+            console.error("Upload failed:", error);
             setMsg("Upload Failed");
-            setActive(false);
-        });
+            setActive(false); // Keep button disabled if upload fails
+        }
     }
 
     return (
         <div>
-            <h3>Upload jpeg Files</h3>
+            <h3>Upload JPEG Files</h3>
 
             <div className="input-form">
                 <input 
-                    type="file" 
+                    type="file" multiple
                     accept="image/jpeg"
-                    onChange={(e) => handleFileSelection(e.target.files)} 
-                    style={{alignContent: "center", justifyContent: "space-around"}}
-
+                    onChange={handleFileSelection} 
+                    style={{ alignContent: "center", justifyContent: "space-around" }}
                 />
                 <Button type="primary" onClick={handleUpload}>Upload</Button>
             </div>
@@ -72,7 +74,7 @@ function FileUpload() {
             <br />
 
             {files.length > 0 && (
-                <div style={{ display: "flex", gap: "10px" , justifyContent: "center"}}>
+                <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
                     {files.map((file, index) => (
                         <img 
                             key={index} 

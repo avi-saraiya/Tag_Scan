@@ -38,10 +38,22 @@ code {
   display: flex;
   gap: 10px; 
   align-content: center;
+  justify-content: center;
 }
 
 .inactive{
   background-color: grey;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+.point-container{
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.text-container{
+  display: flex;
+  justify-content: right;
 }

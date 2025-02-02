@@ -61,7 +61,6 @@ function FileUpload() {
             <div className="input-form">
                 <input 
                     type="file" 
-                    multiple 
                     accept="image/jpeg"
                     onChange={(e) => handleFileSelection(e.target.files)} 
                     style={{alignContent: "center", justifyContent: "space-around"}}
@@ -73,7 +72,7 @@ function FileUpload() {
             <br />
 
             {files.length > 0 && (
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "10px" , justifyContent: "center"}}>
                     {files.map((file, index) => (
                         <img 
                             key={index} 

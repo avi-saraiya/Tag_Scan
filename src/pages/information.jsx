@@ -7,7 +7,7 @@ function Information(){
         <div className="App">
             <header className="App-header">
               <ul className="list-container">
-               
+                <TextBlock/>
               </ul>
             </header>
       </div>

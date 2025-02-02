@@ -2,9 +2,12 @@ import React from "react";
 import {useNavigate} from "react-router-dom";
 import FileUpload from "../components/FileUpload";
 import { Button } from "antd";
+import useSubmitButton from "../hooks/useSubmitButton";
 
 function Home(){
     const navigate = useNavigate();
+    const { submitButton, setActive } = useSubmitButton();
+
 
     return (
       <div className="App">
@@ -15,7 +18,7 @@ function Home(){
             <h1 className="title">Tag Scanner</h1>
             <div>
                 <FileUpload/>
-                <Button className = {submitButton? "active": "inactive"} type = "primary" onClick = {() => navigate("/information")}>Submit</Button>
+                <Button className = {useSubmitButton? "active": "inactive"} type = "primary" onClick = {() => navigate("/information")}>Submit</Button>
             </div>
         </header>
       </div>

@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { createContext, useState } from "react";
 import axios from "axios";
 import { Button, Progress } from "antd";
+import useSubmitButton from "../hooks/useSubmitButton";
 
 function FileUpload() {
     const [files, setFile] = useState([]);  
     const [progress, setProgress] = useState({ started: false, pc: 0 });
     const [msg, setMsg] = useState(null);
-    const [submitButton, setActive] = useState(false);
+    const { submitButton, setActive } = useSubmitButton();
 
     function handleFileSelection(files) {
         const jpegFiles = Array.from(files).filter(file => file.type === "image/jpeg");
@@ -49,6 +50,7 @@ function FileUpload() {
         })
         .catch(() => {
             setMsg("Upload Failed");
+            setActive(false);
         });
     }
 

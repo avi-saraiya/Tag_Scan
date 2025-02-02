@@ -1,115 +1,172 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from typing import Optional
 import PIL.Image
 import google.generativeai as genai
+import io  # For in-memory file handling
 
 app = FastAPI()
 
-# Store responses for washing machine, dryer, and clothing tag instructions
-washing_machine_info: Optional[str] = None
-dryer_info: Optional[str] = None
-clothing_tag_instructions = []
-
 # Configure the Gemini API
-genai.configure(api_key="GEMINI_API_KEY")
+genai.configure(api_key="GEMINI_API_KEY")  
 
-def call_gemini_api(image: UploadFile, prompt: str) -> str:
-    """ Sends the image to Gemini API and retrieves the response """
-    # Open image using PIL
-    image_file = PIL.Image.open(image.file)
+class LaundryAssistant:
+    def __init__(self):
+        self.washing_machine_info: Optional[str] = None
+        self.dryer_info: Optional[str] = None
+        self.clothing_tag_instructions: Optional[str] = None
     
-    # Initialize the Gemini model
-    model = genai.GenerativeModel(model_name="gemini-1.5.pro")
+    def call_gemini_api(self, image_bytes: bytes, prompt: str) -> str:
+        """Sends image bytes and prompt to Gemini API."""
+        try:
+            image = PIL.Image.open(io.BytesIO(image_bytes))  # Open image from bytes
+            model = genai.GenerativeModel(model_name="gemini-1.5.pro")  # Or your model name
+            response = model.generate_content(prompt, image)  # Pass image object directly
+            return response.text
+        except Exception as e:
+            print(f"Gemini API Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Gemini API Error: {e}")
     
-    # Get response from the Gemini API
-    response = model.generate_content(prompt, image_file)
-    
-    # Return the result as text
-    return response.text
+    async def upload_image(self, image: UploadFile, prompt: str, storage_attr: str):
+        """Handles image upload and Gemini API call."""
+        try:
+            image_bytes = await image.read()
+            result = self.call_gemini_api(image_bytes, prompt)
+            setattr(self, storage_attr, result)
+            return {"message": f"{storage_attr.replace('_', ' ').title()} details saved", "info": result}
+        except Exception as e:
+            return {"error": str(e)}
+
+laundry_assistant = LaundryAssistant()
 
 @app.post("/upload/washing-machine")
-def upload_washing_machine(image: UploadFile = File(...)):
-    """ Uploads a washing machine image and retrieves details from Gemini API """
-    global washing_machine_info
-    prompt = "This is an image of a washing machine. For this image, extract as much details as you can that can help a user to use it. Write less than three sentences."
-    washing_machine_info = call_gemini_api(image, prompt)
-    return {"message": "Washing machine details saved", "info": washing_machine_info}
-
-# React code :
-# const uploadImage = async (event, type) => {
-#     const file = event.target.files[0];
-#     if (!file) return;
-    
-#     const formData = new FormData();
-#     formData.append("image", file);
-
-#     let endpoint = "";
-#     if (type === "washing-machine") {
-#         endpoint = "/upload/washing-machine";
-#     } else if (type === "dryer") {
-#         endpoint = "/upload/dryer";
-#     } else {
-#         endpoint = "/upload/clothing-tag";
-#     }
-
-#     try {
-#         const response = await fetch(`http://localhost:8000${endpoint}`, {
-#             method: "POST",
-#             body: formData,
-#         });
-#         const data = await response.json();
-        
-#         if (type === "washing-machine") {
-#             setWashingMachineInfo(data.info);
-#         } else if (type === "dryer") {
-#             setDryerInfo(data.info);
-#         } else {
-#             setClothingTagInstructions([...clothingTagInstructions, data.instructions]);
-#         }
-#     } catch (error) {
-#         console.error("Error uploading image:", error);
-#     }
-# };
-
+async def upload_washing_machine(image: UploadFile = File(...)):
+    return await laundry_assistant.upload_image(image, "This is a washing machine image. Extract details to help a user. (less than 3 sentences)", "washing_machine_info")
 
 @app.post("/upload/dryer")
-def upload_dryer(image: UploadFile = File(...)):
-    """ Uploads a dryer image and retrieves details from Gemini API """
-    global dryer_info
-    prompt = "Upload an image of a dryer. For this image, extract as much details as you can that can help a user to use it. Write less than three sentences."
-    dryer_info = call_gemini_api(image, prompt)
-    return {"message": "Dryer details saved", "info": dryer_info}
+async def upload_dryer(image: UploadFile = File(...)):
+    return await laundry_assistant.upload_image(image, "This is a dryer image. Extract details to help a user. (less than 3 sentences)", "dryer_info")
 
-# @app.post("/upload/clothing-tag")
-# def upload_clothing_tag(image: UploadFile = File(...)):
-#     """ Uploads a clothing tag image and retrieves washing and drying instructions """
-#     if not washing_machine_info or not dryer_info:
-#         return {"error": "Please upload washing machine and dryer images first"}
+@app.post("/upload/clothing-tag")
+async def upload_clothing_tag(image: UploadFile = File(...)):
+    if not laundry_assistant.washing_machine_info or not laundry_assistant.dryer_info:
+        raise HTTPException(status_code=400, detail="Upload washer and dryer images first")
     
-#     # Formulating prompt using previous image information
-#     prompt = ("This is a tag of a cloth. Retrieve the laundry symbols from this tag. "
-#               "Using the washing machine image and the dryer image uploaded before "
-#               "and the information retrieved from the most recent image of the clothing tag, "
-#               "give me one sentence instruction on how to use my washing machine "
-#               "and one sentence instruction on how to use my dryer.")
+    prompt = (f"This is a clothing tag. Extract laundry symbols. Given washing machine info:\n"
+              f"{laundry_assistant.washing_machine_info}\nDryer info:\n{laundry_assistant.dryer_info}\n"
+              "Give ONE SENTENCE washing and ONE SENTENCE drying instruction.")
     
-#     instructions = call_gemini_api(image, prompt)
-#     clothing_tag_instructions.append(instructions)
-#     return {"message": "Clothing tag instructions saved", "instructions": instructions}
+    return await laundry_assistant.upload_image(image, prompt, "clothing_tag_instructions")
 
 @app.get("/get/washing-machine-info")
-def get_washing_machine_info():
-    """ Returns the extracted washing machine details """
-    return {"washing_machine_info": washing_machine_info}
+async def get_washing_machine_info():
+    return {"washing_machine_info": laundry_assistant.washing_machine_info}
 
 @app.get("/get/dryer-info")
-def get_dryer_info():
-    """ Returns the extracted dryer details """
-    return {"dryer_info": dryer_info}
+async def get_dryer_info():
+    return {"dryer_info": laundry_assistant.dryer_info}
 
 @app.get("/get/clothing-tag-instructions")
-def get_clothing_tag_instructions():
-    """ Returns all extracted clothing tag instructions """
-    return {"clothing_tag_instructions": clothing_tag_instructions}
+async def get_clothing_tag_instructions():
+    return {"clothing_tag_instructions": laundry_assistant.clothing_tag_instructions}
 
 
+# # compatible JS code using axios:
+# import axios from 'axios';
+# import React, { useState } from 'react';
+
+# function App() {
+#     const [washingMachineInfo, setWashingMachineInfo] = useState('');
+#     const [dryerInfo, setDryerInfo] = useState('');
+#     const [clothingTagInstructions, setClothingTagInstructions] = useState([]);
+#     const [selectedFile, setSelectedFile] = useState(null);
+#     const [uploadType, setUploadType] = useState('');
+
+#     const handleFileChange = (event) => {
+#         setSelectedFile(event.target.files[0]);
+#     };
+
+#     const handleUploadTypeChange = (event) => {
+#         setUploadType(event.target.value);
+#     };
+
+
+#     const uploadImage = async () => {
+#         if (!selectedFile || !uploadType) {
+#             alert("Please select an image and upload type.");
+#             return;
+#         }
+
+#         const formData = new FormData();
+#         formData.append("image", selectedFile);
+
+#         let endpoint = "";
+#         if (uploadType === "washing-machine") {
+#             endpoint = "/upload/washing-machine";
+#         } else if (uploadType === "dryer") {
+#             endpoint = "/upload/dryer";
+#         } else {
+#             endpoint = "/upload/clothing-tag";
+#         }
+
+#         try {
+#             const response = await axios.post(`http://localhost:8000${endpoint}`, formData, {
+#                 headers: {
+#                     'Content-Type': 'multipart/form-data' // Important for file uploads
+#                 }
+#             });
+
+#             const data = response.data;
+
+#             if (uploadType === "washing-machine") {
+#                 setWashingMachineInfo(data.info);
+#             } else if (uploadType === "dryer") {
+#                 setDryerInfo(data.info);
+#             } else {
+#                 setClothingTagInstructions([...clothingTagInstructions, data.instructions]);
+#             }
+
+#         } catch (error) {
+#             console.error("Error uploading image:", error);
+#             alert("Error uploading image. Please check the console for details."); // Display an alert
+#         }
+#     };
+
+#     return (
+#         <div>
+#             <div>
+#                 <label htmlFor="uploadType">Upload Type:</label>
+#                 <select id="uploadType" value={uploadType} onChange={handleUploadTypeChange}>
+#                     <option value="">Select Type</option>
+#                     <option value="washing-machine">Washing Machine</option>
+#                     <option value="dryer">Dryer</option>
+#                     <option value="clothing-tag">Clothing Tag</option>
+#                 </select>
+#             </div>
+#             <input type="file" onChange={handleFileChange} />
+#             <button onClick={uploadImage} disabled={!selectedFile || !uploadType}>Upload</button>
+
+#             {washingMachineInfo && (
+#                 <div>
+#                     <h2>Washing Machine Info:</h2>
+#                     <p>{washingMachineInfo}</p>
+#                 </div>
+#             )}
+
+#             {dryerInfo && (
+#                 <div>
+#                     <h2>Dryer Info:</h2>
+#                     <p>{dryerInfo}</p>
+#                 </div>
+#             )}
+
+#             {clothingTagInstructions && clothingTagInstructions.map((instruction, index) => (
+#                 <div key={index}>
+#                     <h2>Clothing Tag Instruction {index + 1}:</h2>
+#                     <p>{instruction}</p>
+#                 </div>
+#             ))}
+#         </div>
+#     );
+# }
+
+# export default App;

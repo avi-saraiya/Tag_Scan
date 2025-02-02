@@ -36,12 +36,41 @@ def upload_washing_machine(image: UploadFile = File(...)):
     return {"message": "Washing machine details saved", "info": washing_machine_info}
 
 # React code :
-# const fetchWashingMachineInfo = async () => {
-#     const response = await fetch("http://localhost:8000
-# /get/washing-machine-info");
-#     const data = await response.json();
-#     console.log(data.washing_machine_info); // Display in frontend
+# const uploadImage = async (event, type) => {
+#     const file = event.target.files[0];
+#     if (!file) return;
+    
+#     const formData = new FormData();
+#     formData.append("image", file);
+
+#     let endpoint = "";
+#     if (type === "washing-machine") {
+#         endpoint = "/upload/washing-machine";
+#     } else if (type === "dryer") {
+#         endpoint = "/upload/dryer";
+#     } else {
+#         endpoint = "/upload/clothing-tag";
+#     }
+
+#     try {
+#         const response = await fetch(`http://localhost:8000${endpoint}`, {
+#             method: "POST",
+#             body: formData,
+#         });
+#         const data = await response.json();
+        
+#         if (type === "washing-machine") {
+#             setWashingMachineInfo(data.info);
+#         } else if (type === "dryer") {
+#             setDryerInfo(data.info);
+#         } else {
+#             setClothingTagInstructions([...clothingTagInstructions, data.instructions]);
+#         }
+#     } catch (error) {
+#         console.error("Error uploading image:", error);
+#     }
 # };
+
 
 @app.post("/upload/dryer")
 def upload_dryer(image: UploadFile = File(...)):
@@ -51,22 +80,22 @@ def upload_dryer(image: UploadFile = File(...)):
     dryer_info = call_gemini_api(image, prompt)
     return {"message": "Dryer details saved", "info": dryer_info}
 
-@app.post("/upload/clothing-tag")
-def upload_clothing_tag(image: UploadFile = File(...)):
-    """ Uploads a clothing tag image and retrieves washing and drying instructions """
-    if not washing_machine_info or not dryer_info:
-        return {"error": "Please upload washing machine and dryer images first"}
+# @app.post("/upload/clothing-tag")
+# def upload_clothing_tag(image: UploadFile = File(...)):
+#     """ Uploads a clothing tag image and retrieves washing and drying instructions """
+#     if not washing_machine_info or not dryer_info:
+#         return {"error": "Please upload washing machine and dryer images first"}
     
-    # Formulating prompt using previous image information
-    prompt = ("This is a tag of a cloth. Retrieve the laundry symbols from this tag. "
-              "Using the washing machine image and the dryer image uploaded before "
-              "and the information retrieved from the most recent image of the clothing tag, "
-              "give me one sentence instruction on how to use my washing machine "
-              "and one sentence instruction on how to use my dryer.")
+#     # Formulating prompt using previous image information
+#     prompt = ("This is a tag of a cloth. Retrieve the laundry symbols from this tag. "
+#               "Using the washing machine image and the dryer image uploaded before "
+#               "and the information retrieved from the most recent image of the clothing tag, "
+#               "give me one sentence instruction on how to use my washing machine "
+#               "and one sentence instruction on how to use my dryer.")
     
-    instructions = call_gemini_api(image, prompt)
-    clothing_tag_instructions.append(instructions)
-    return {"message": "Clothing tag instructions saved", "instructions": instructions}
+#     instructions = call_gemini_api(image, prompt)
+#     clothing_tag_instructions.append(instructions)
+#     return {"message": "Clothing tag instructions saved", "instructions": instructions}
 
 @app.get("/get/washing-machine-info")
 def get_washing_machine_info():

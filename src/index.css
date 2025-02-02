@@ -16,6 +16,8 @@ code {
     monospace;
 }
 
+
+
 :is(h1, h2, h3, h4, h5, h6) {
   margin:2%;
 }
@@ -29,7 +31,12 @@ code {
   gap: 2%;
 }
 
-.buttons-div{
+.list-container{
+  display:flex;
+}
+
+.input-form{
   display: flex;
-  gap: 10px;
+  gap: 10px; 
+  align-content: center;
 }

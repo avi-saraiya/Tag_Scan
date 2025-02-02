@@ -1,4 +1,4 @@
-import {Button, Flex} from 'antd';
+import {Button, Fl} from 'antd';
 
 function ManagePhotos(){
     return(

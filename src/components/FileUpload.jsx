@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { Button, Progress } from "antd";
 
@@ -6,6 +6,7 @@ function FileUpload() {
     const [files, setFile] = useState([]);  
     const [progress, setProgress] = useState({ started: false, pc: 0 });
     const [msg, setMsg] = useState(null);
+    const [submitButton, setActive] = useState(false);
 
     function handleFileSelection(files) {
         const jpegFiles = Array.from(files).filter(file => file.type === "image/jpeg");
@@ -44,7 +45,7 @@ function FileUpload() {
         .then((res) => {
             console.log(res.data)
             setMsg("Uploaded Successfully");
-
+            setActive(true);
         })
         .catch(() => {
             setMsg("Upload Failed");
@@ -55,14 +56,18 @@ function FileUpload() {
         <div>
             <h3>Upload jpeg Files</h3>
 
-            <input 
-                type="file" 
-                multiple 
-                accept="image/jpeg"
-                onChange={(e) => handleFileSelection(e.target.files)} 
-            />
-            <Button type="primary" onClick={handleUpload}>Upload</Button>
+            <div className="input-form">
+                <input 
+                    type="file" 
+                    multiple 
+                    accept="image/jpeg"
+                    onChange={(e) => handleFileSelection(e.target.files)} 
+                    style={{alignContent: "center", justifyContent: "space-around"}}
 
+                />
+                <Button type="primary" onClick={handleUpload}>Upload</Button>
+            </div>
+            
             <br />
 
             {files.length > 0 && (

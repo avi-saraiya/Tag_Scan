@@ -1,4 +1,4 @@
-# Google-Macathon
+# TagScan
 TagScan - AI-Powered Cloth Tag Reader
 This repository contains a Flask backend and a React frontend that work together to process image uploads. The backend receives images from the frontend, processes them, and returns results. The React frontend allows users to select and upload an image, receiving and displaying the backend's response.
 
